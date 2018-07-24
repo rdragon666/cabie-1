@@ -1,0 +1,424 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+
+namespace algo
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var m0 = 0.0;
+            List<int> EmpArea = new List<int>();
+            List<int> EmpZone = new List<int>();
+            List<int> zoneid = new List<int>();
+            List<int> areaid = new List<int>();
+            List<int> ZoneList = new List<int>();
+            List<int> QueueList = new List<int>();
+            List<int> OneEmpList = new List<int>();
+            List<int> TwoEmpList = new List<int>();
+            List<int> RemList = new List<int>();
+            List<int> AnotherRemList = new List<int>();
+            List<int> SingleEmpList = new List<int>();
+            List<int> DoubleEmpList = new List<int>();
+            List<double> LatList = new List<double>();
+            List<double> LongList = new List<double>();
+
+            CabieEntities dbcontext = new CabieEntities();
+            zoneid = (from Employee in dbcontext.Zones
+                      select Employee.ZoneId).ToList();
+            areaid = (from employee1 in dbcontext.Areas
+                      select employee1.AreaId).ToList();
+
+            foreach (var i in zoneid)
+            {
+                foreach (var j in areaid)
+                {
+                    EmpArea = (from ea in dbcontext.Areas
+                               join ea1 in dbcontext.AreaCodes on
+    ea.AreaId equals ea1.AreaId
+                               join ea2 in dbcontext.Addresses on
+                               ea1.AreaCodeId equals ea2.AreaCodeId
+                               join ea3 in dbcontext.EmployeeDetails on
+                               ea2.EmployeeId equals ea3.EmployeeId
+                               where ea.AreaId == j
+                               select ea3.EmployeeId).ToList();
+                    Console.WriteLine(EmpArea);
+                    Console.ReadLine();
+
+                    int noOfEmployee = EmpArea.Count();
+                    var x = noOfEmployee % 3;
+                    if (x == 0)
+                    {
+                        int cab_required = (noOfEmployee / 3);
+                        Assign(EmpArea);
+                    }
+                    else if (x != 0)
+                    {
+                        int cab_required = (noOfEmployee / 3) + 1;
+                        for (var j1 = 0; j1 < cab_required - 1; j1++)
+                        {
+                            QueueList = QueueList.Concat(EmpArea).ToList();
+                            Console.WriteLine(EmpArea);
+                            Console.ReadLine();
+                            //List<int> QueueList = area_list.Select(e => e.EmployeeId where areaid = j).ToList();//List of EmployeeId of all employees of particular area 'j'
+
+                            Assign(QueueList);
+
+                            //remove the e_id from EmpArea which are same as QueueList and Assign to RemList
+
+
+
+                            RemList = EmpArea.Except(QueueList).ToList();//remove the e_id from EmpArea which are same as QueueList and Assign to RemList
+                            Console.WriteLine(RemList);
+                            Console.ReadLine();
+
+
+                            OneEmpList = (from ea in dbcontext.Areas
+                                          join ea1 in dbcontext.AreaCodes on
+                                          ea.AreaId equals ea1.AreaId
+                                          join ea2 in dbcontext.Addresses on
+                                          ea1.AreaCodeId equals ea2.AreaCodeId
+                                          join ea3 in dbcontext.EmployeeDetails on
+                                          ea2.EmployeeId equals ea3.EmployeeId
+                                          where EmpArea.Count() == 1
+                                          select ea3.EmployeeId).ToList();
+
+                            Console.WriteLine(OneEmpList);
+                            Console.ReadLine();
+
+                            OneEmpList = (from ea in dbcontext.Areas
+                                          join ea1 in dbcontext.AreaCodes on
+                                          ea.AreaId equals ea1.AreaId
+                                          join ea2 in dbcontext.Addresses on
+                                          ea1.AreaCodeId equals ea2.AreaCodeId
+                                          join ea3 in dbcontext.EmployeeDetails on
+                                          ea2.EmployeeId equals ea3.EmployeeId
+                                          where EmpArea.Count() == 2
+                                          select ea3.EmployeeId).ToList();
+
+                            Console.WriteLine(TwoEmpList);
+                            Console.ReadLine();
+                            //List<int> OneEmpList = employeeList.Select( where count(EmployeeId) == 1 in a particualr area).ToList();
+                            //List<int> TwoEmpList = dbcontext.EmployeeDetails.Select(EmployeeId where count(EmployeeId) == 2 in a particualr area).ToList();
+                        }
+
+                        foreach (var item in RemList)
+                        {
+                            foreach (var itm in OneEmpList)
+                            {
+                                LatList = (from ea in dbcontext.EmployeeDetails
+                                           join ea1 in dbcontext.Addresses on
+                                           ea.EmployeeId equals ea1.EmployeeId
+                                           join ea2 in dbcontext.AreaCodes on
+                                           ea1.AreaCodeId equals ea2.AreaCodeId
+                                           where ea2.AreaId == itm
+                                           select ea1.Latitude).ToList();
+
+
+                                LongList = (from ea in dbcontext.EmployeeDetails
+                                            join ea1 in dbcontext.Addresses on
+                                            ea.EmployeeId equals ea1.EmployeeId
+                                            join ea2 in dbcontext.AreaCodes on
+                                            ea1.AreaCodeId equals ea2.AreaCodeId
+                                            where ea2.AreaId == itm
+                                            select ea1.Longitude).ToList();
+
+
+                                m0 = calculateDistance(LatList[1], LongList[1], LatList[2], LongList[2], LatList[3], LongList[3]);
+
+
+                                int thresh = 10;
+                                if (m0 < thresh)
+                                {
+
+
+                                    EmpArea = (from ea in dbcontext.Areas
+                                               join ea1 in dbcontext.AreaCodes on
+                                               ea.AreaId equals ea1.AreaId
+                                               join ea2 in dbcontext.Addresses on
+                                               ea1.AreaCodeId equals ea2.AreaCodeId
+                                               join ea3 in dbcontext.EmployeeDetails on
+                                               ea2.EmployeeId equals ea3.EmployeeId
+                                               where ea.AreaId == itm
+                                               select ea3.EmployeeId).ToList();
+
+                                    //Add the respective EmployeeId into QueueList
+                                    QueueList = QueueList.Concat(EmpArea).ToList();
+                                    Assign(QueueList);
+                                }
+                                else
+                                {
+                                    //not feasible
+
+                                    //Assign separate cab
+                                    Assign(QueueList);
+                                    RemList = EmpArea.Except(QueueList).ToList();
+
+                                    //remove the e_id Assigned from the QueueList
+                                }
+                            }
+                        }
+                        foreach (var item in RemList)
+                        {
+                            foreach (var itm in TwoEmpList)
+                            {
+
+                                LatList = (from ea in dbcontext.EmployeeDetails
+                                           join ea1 in dbcontext.Addresses on
+                                           ea.EmployeeId equals ea1.EmployeeId
+                                           join ea2 in dbcontext.AreaCodes on
+                                           ea1.AreaCodeId equals ea2.AreaCodeId
+                                           where ea2.AreaId == itm
+                                           select ea1.Latitude).ToList();
+
+
+                                LongList = (from ea in dbcontext.EmployeeDetails
+                                            join ea1 in dbcontext.Addresses on
+                                            ea.EmployeeId equals ea1.EmployeeId
+                                            join ea2 in dbcontext.AreaCodes on
+                                            ea1.AreaCodeId equals ea2.AreaCodeId
+                                            where ea2.AreaId == itm
+                                            select ea1.Longitude).ToList();
+
+                                m0 = calculateDistance(LatList[1], LongList[1], LatList[2], LongList[2], LatList[3], LongList[3]);
+                                int thresh = 10;
+                                if (m0 > thresh)
+                                {
+
+                                    EmpArea = (from ea in dbcontext.Areas
+                                               join ea1 in dbcontext.AreaCodes on
+                                               ea.AreaId equals ea1.AreaId
+                                               join ea2 in dbcontext.Addresses on
+                                               ea1.AreaCodeId equals ea2.AreaCodeId
+                                               join ea3 in dbcontext.EmployeeDetails on
+                                               ea2.EmployeeId equals ea3.EmployeeId
+                                               where ea.AreaId == itm
+                                               select ea3.EmployeeId).ToList();
+
+                                    //Add the first 4 EmployeeId of TwoEmpList into QueueList
+                                    QueueList = QueueList.Concat(EmpArea).ToList();
+                                    Console.WriteLine(QueueList);
+                                    Console.ReadLine();
+                                    Assign(QueueList);
+                                    RemList = EmpArea.Except(QueueList).ToList();
+                                    Console.WriteLine(RemList);
+                                    Console.ReadLine();
+                                    //remove the e_id Assigned from the QueueList
+
+                                }
+                                else
+                                {
+                                    //not feasible
+
+                                    //Assign separate cab
+                                    Assign(QueueList);
+                                    RemList = EmpArea.Except(QueueList).ToList();
+                                    Console.WriteLine(RemList);
+                                    Console.ReadLine();
+                                    //remove the e_id Assigned from the QueueList
+                                }
+                            }
+                        }
+                    }
+                }
+                AnotherRemList = EmpArea.Except(QueueList).ToList();//remove the e_id from EmpArea which are same as QueueList and Assign to AnotherRemList
+                Console.WriteLine(AnotherRemList);
+                Console.ReadLine();
+
+
+                SingleEmpList = (from ea in dbcontext.Zones
+                                 join ea1 in dbcontext.AreaCodes on
+                                 ea.ZoneId equals ea1.ZoneId
+                                 join ea2 in dbcontext.Addresses on
+                                 ea1.AreaCodeId equals ea2.AreaCodeId
+                                 join ea3 in dbcontext.EmployeeDetails on
+                                 ea2.EmployeeId equals ea3.EmployeeId
+                                 where EmpZone.Count() == 1
+                                 select ea3.EmployeeId).ToList();
+
+                Console.WriteLine(SingleEmpList);
+                Console.ReadLine();
+
+                DoubleEmpList = (from ea in dbcontext.Zones
+                                 join ea1 in dbcontext.AreaCodes on
+                                 ea.ZoneId equals ea1.ZoneId
+                                 join ea2 in dbcontext.Addresses on
+                                 ea1.AreaCodeId equals ea2.AreaCodeId
+                                 join ea3 in dbcontext.EmployeeDetails on
+                                 ea2.EmployeeId equals ea3.EmployeeId
+                                 where EmpZone.Count() == 2
+                                 select ea3.EmployeeId).ToList();
+
+                Console.WriteLine(DoubleEmpList);
+                Console.ReadLine();
+                //SingleEmpList = context.EmployeeDetails.Select(EmployeeId where count(EmployeeId) == 1 in a particualr zone).ToList();
+                //DoubleEmpList = context.EmployeeDetails.Select(EmployeeId where count(EmployeeId) == 2 in a particualr zone).ToList();
+                foreach (var item in AnotherRemList)
+                {
+                    foreach (var itm in SingleEmpList)
+                    {
+
+                        LatList = (from ea in dbcontext.EmployeeDetails
+                                   join ea1 in dbcontext.Addresses on
+                                   ea.EmployeeId equals ea1.EmployeeId
+                                   join ea2 in dbcontext.AreaCodes on
+                                   ea1.AreaCodeId equals ea2.AreaCodeId
+                                   where ea2.ZoneId == itm
+                                   select ea1.Latitude).ToList();
+
+                        LongList = (from ea in dbcontext.EmployeeDetails
+                                    join ea1 in dbcontext.Addresses on
+                                    ea.EmployeeId equals ea1.EmployeeId
+                                    join ea2 in dbcontext.AreaCodes on
+                                    ea1.AreaCodeId equals ea2.AreaCodeId
+                                    where ea2.ZoneId == itm
+                                    select ea1.Longitude).ToList();
+
+
+                        m0 = calculateDistance(LatList[1], LongList[1], LatList[2], LongList[2], LatList[3], LongList[3]);
+
+                        int thresh = 10;
+                        if (m0 < thresh)
+                        {
+
+                            EmpZone = (from ea in dbcontext.Zones
+                                       join ea1 in dbcontext.AreaCodes on
+                                       ea.ZoneId equals ea1.ZoneId
+                                       join ea2 in dbcontext.Addresses on
+                                       ea1.AreaCodeId equals ea2.AreaCodeId
+                                       join ea3 in dbcontext.EmployeeDetails on
+                                       ea2.EmployeeId equals ea3.EmployeeId
+                                       where ea.ZoneId == itm
+                                       select ea3.EmployeeId).ToList();
+
+                            Console.WriteLine(EmpZone);
+                            Console.ReadLine();
+
+
+
+                            //Add the respective EmployeeId into 
+                            QueueList = QueueList.Concat(EmpZone).ToList();
+                            Console.WriteLine(QueueList);
+                            Console.ReadLine();
+
+                            Assign(QueueList);
+                        }
+                        else
+                        {
+                            //not feasible
+
+                            //Assign separate cab
+                            Assign(QueueList);
+                            AnotherRemList = EmpZone.Except(QueueList).ToList();
+                            Console.WriteLine(AnotherRemList);
+                            Console.ReadLine();
+                            //remove the e_id Assigned from the QueueList
+                        }
+                    }
+                }
+                foreach (var item in AnotherRemList)
+                {
+                    foreach (var itm in DoubleEmpList)
+                    {
+                        LatList = (from ea in dbcontext.EmployeeDetails
+                                   join ea1 in dbcontext.Addresses on
+                                   ea.EmployeeId equals ea1.EmployeeId
+                                   join ea2 in dbcontext.AreaCodes on
+                                   ea1.AreaCodeId equals ea2.AreaCodeId
+                                   where ea2.ZoneId == itm
+                                   select ea1.Latitude).ToList();
+
+                        LongList = (from ea in dbcontext.EmployeeDetails
+                                    join ea1 in dbcontext.Addresses on
+                                    ea.EmployeeId equals ea1.EmployeeId
+                                    join ea2 in dbcontext.AreaCodes on
+                                    ea1.AreaCodeId equals ea2.AreaCodeId
+                                    where ea2.ZoneId == itm
+                                    select ea1.Longitude).ToList();
+
+                        m0 = calculateDistance(LatList[1], LongList[1], LatList[2], LongList[2], LatList[3], LongList[3]);
+                        int thresh = 10;
+                        if (m0 > thresh)
+                        {
+
+
+                            EmpZone = (from ea in dbcontext.Zones
+                                       join ea1 in dbcontext.AreaCodes on
+                                       ea.ZoneId equals ea1.ZoneId
+                                       join ea2 in dbcontext.Addresses on
+                                       ea1.AreaCodeId equals ea2.AreaCodeId
+                                       join ea3 in dbcontext.EmployeeDetails on
+                                       ea2.EmployeeId equals ea3.EmployeeId
+                                       where ea.ZoneId == itm
+                                       select ea3.EmployeeId).ToList();
+
+                            Console.WriteLine(EmpZone);
+                            Console.ReadLine();
+
+                            //Add the first 4 EmployeeId of DoubleEmpList into QueueList
+                            QueueList = QueueList.Concat(EmpZone).ToList();
+                            Assign(QueueList);
+                            AnotherRemList = EmpArea.Except(QueueList).ToList();
+                            Console.WriteLine(AnotherRemList);
+                            Console.ReadLine();
+                            //remove the e_id Assigned from the QueueList
+                        }
+                        else
+                        {
+                            //not feasible
+
+                            //Assign separate cab
+                            Assign(QueueList);
+                            AnotherRemList = EmpArea.Except(QueueList).ToList();
+                            Console.WriteLine(AnotherRemList);
+                            Console.ReadLine();
+                            //remove the e_id Assign ed from the QueueList
+                        }
+                    }
+                }
+            }
+        }
+
+
+        public static double calc2dist(double lat1, double lon1, double lat2, double lon2)
+        {
+            double rlat1 = Math.PI * lat1 / 180;
+            double rlat2 = Math.PI * lat2 / 180;
+            double theta = lon1 - lon2;
+            double rtheta = Math.PI * theta / 180;
+            double dist = Math.Sin(rlat1) * Math.Sin(rlat2) + Math.Cos(rlat1) * Math.Cos(rlat2) * Math.Cos(rtheta);
+            dist = Math.Acos(dist);
+            dist = dist * 180 / Math.PI;
+            dist = dist * 60 * 1.1515;
+            dist = dist * 1.609344;
+            return dist;
+        }
+
+        public static double calculateDistance(double lat1, double lon1, double lat2, double lon2, double lat3, double lon3)
+        {
+            var dist1 = calc2dist(lat1, lon1, lat2, lon2);
+            var dist2 = calc2dist(lat1, lon1, lat3, lon3);
+            var dist3 = calc2dist(lat2, lon2, lat3, lon3);
+            if (dist1 < dist2 && dist1 < dist3)
+            {
+                return dist1;
+            }
+            else if (dist2 < dist3)
+            {
+                return dist2;
+            }
+            else
+            {
+                return dist3;
+            }
+        }
+
+
+        public static void Assign(List<int> T)
+        {
+
+        }
+    }
+}
